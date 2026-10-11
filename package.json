@@ -11,6 +11,9 @@
     "infra:down": "docker compose down",
     "infra:logs": "docker compose logs -f",
     "dev:api": "pnpm --filter api start:dev",
-    "test:api": "pnpm --filter api test"
+    "test:api": "pnpm --filter api test",
+    "db:migrate": "pnpm --filter api prisma:migrate",
+    "db:studio": "pnpm --filter api prisma:studio",
+    "db:reset": "pnpm --filter api prisma:reset"
   }
 }

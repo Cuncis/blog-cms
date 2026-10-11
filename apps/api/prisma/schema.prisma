@@ -1,0 +1,55 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextIndex"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  READER
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Char(36)
+  email        String   @unique @db.VarChar(254)
+  name         String   @db.VarChar(100)
+  passwordHash String   @db.VarChar(255)
+  role         Role     @default(READER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  posts        Post[]
+
+  @@map("users")
+}
+
+model Post {
+  id          String     @id @default(uuid()) @db.Char(36)
+  slug        String     @unique @db.VarChar(200)
+  title       String     @db.VarChar(200)
+  excerpt     String?    @db.VarChar(300)
+  content     String     @db.MediumText
+  status      PostStatus @default(DRAFT)
+  publishedAt DateTime? // set when a post is published (the service enforces this in Step 5)
+  authorId    String     @db.Char(36)
+  author      User       @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // The public list: published posts, newest first
+  @@index([status, publishedAt])
+  // "My posts" for an author
+  @@index([authorId, createdAt])
+  // MATCH ... AGAINST search (used in Step 6)
+  @@fulltext([title, content])
+  @@map("posts")
+}
