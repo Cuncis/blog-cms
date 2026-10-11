@@ -20,16 +20,34 @@ enum PostStatus {
 }
 
 model User {
-  id           String   @id @default(uuid()) @db.Char(36)
-  email        String   @unique @db.VarChar(254)
-  name         String   @db.VarChar(100)
-  passwordHash String   @db.VarChar(255)
-  role         Role     @default(READER)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  posts        Post[]
+  id            String         @id @default(uuid()) @db.Char(36)
+  email         String         @unique @db.VarChar(254)
+  name          String         @db.VarChar(100)
+  passwordHash  String         @db.VarChar(255)
+  role          Role           @default(READER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  posts         Post[]
+  refreshTokens RefreshToken[]
 
   @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Char(36)
+  tokenHash String    @unique @db.Char(64) // SHA-256 hex of the token. The token itself is never stored.
+  familyId  String    @db.Char(36) // one login session = one family
+  userId    String    @db.Char(36)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
 }
 
 model Post {
