@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.next/
+coverage/
+*.tsbuildinfo
+
+# env files (never commit secrets)
+.env
+.env.*
+!.env.example
+
+*.log
+.DS_Store
+.idea/
