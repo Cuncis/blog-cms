@@ -16,5 +16,12 @@
     "db:studio": "pnpm --filter api prisma:studio",
     "db:reset": "pnpm --filter api prisma:reset",
     "db:seed-admin": "pnpm --filter api seed:admin"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "tsconfck>typescript": "6"
+      }
+    }
   }
 }

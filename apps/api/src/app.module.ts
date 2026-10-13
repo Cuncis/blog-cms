@@ -9,6 +9,7 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
 import { configuration } from './config/configuration.js';
 import { validateEnv } from './config/env.validation.js';
 import { HealthModule } from './health/health.module.js';
+import { PostsModule } from './posts/posts.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { throttlerOptions } from './rate-limit/rate-limit.config.js';
 import { UsersModule } from './users/users.module.js';
@@ -26,6 +27,7 @@ import { UsersModule } from './users/users.module.js';
     HealthModule,
     AuthModule,
     UsersModule,
+    PostsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },

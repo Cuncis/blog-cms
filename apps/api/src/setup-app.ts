@@ -2,14 +2,20 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
+import { json } from 'express';
 import helmet from 'helmet';
 import type { AppConfig } from './config/configuration.js';
+import { MANAGE_POSTS_PATH } from './posts/posts.constants.js';
 
 // Auth payloads are tiny. Anything bigger is a mistake or an attack.
 export const JSON_BODY_LIMIT = '10kb';
 
+// Posts hold long text, so the content routes (and only those) get a larger limit.
+// The DTOs cap content at 200,000 characters, which fits comfortably inside 1 MB.
+export const POST_BODY_LIMIT = '1mb';
+
 // Everything app-wide lives here so tests can reuse the exact same setup.
-// The app must be created with { bodyParser: false }: we register our own JSON parser below.
+// The app must be created with { bodyParser: false }: we register our own JSON parsers below.
 export function configureApp(app: NestExpressApplication): void {
     const config = app.get<ConfigService<AppConfig, true>>(ConfigService);
 
@@ -32,14 +38,18 @@ export function configureApp(app: NestExpressApplication): void {
         maxAge: 600, // browsers may cache the preflight answer for 10 minutes
     });
 
+    // ORDER MATTERS: the first JSON parser to read a request body wins, and later ones skip it.
+    // So the roomy parser for post routes must be registered BEFORE the strict default one.
+    app.use(`/${MANAGE_POSTS_PATH}`, json({ limit: POST_BODY_LIMIT }));
     app.useBodyParser('json', { limit: JSON_BODY_LIMIT });
+
     app.use(cookieParser()); // fills req.cookies from the Cookie header
 
     app.useGlobalPipes(
         new ValidationPipe({
             whitelist: true, // strip properties that have no decorator
             forbidNonWhitelisted: true, // ...and reject the request instead of silently dropping them
-            transform: true, // run our @Transform functions (email normalization)
+            transform: true, // run our @Transform functions (email and text normalization)
         }),
     );
 }
