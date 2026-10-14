@@ -6,6 +6,8 @@ export const DEFAULT_LIMIT = { limit: 100, ttl: MINUTE_MS };
 export const LOGIN_LIMIT = { limit: 10, ttl: 15 * MINUTE_MS };
 export const REGISTER_LIMIT = { limit: 5, ttl: 60 * MINUTE_MS };
 export const REFRESH_LIMIT = { limit: 30, ttl: 15 * MINUTE_MS };
+// Listing and searching hit the database harder than reading a single post does
+export const LIST_LIMIT = { limit: 60, ttl: MINUTE_MS };
 
 export const RATE_LIMIT_MESSAGE = 'Too many requests. Please try again later.';
 
