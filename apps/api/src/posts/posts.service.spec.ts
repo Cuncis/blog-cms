@@ -7,6 +7,7 @@ import {
 import { Test } from '@nestjs/testing';
 import { PostStatus, Prisma, Role } from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/auth.types.js';
+import { CacheService } from '../cache/cache.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PostsService } from './posts.service.js';
 import { managePostSelect, publicPostSelect } from './posts.types.js';
@@ -53,7 +54,11 @@ describe('PostsService', () => {
         };
 
         const moduleRef = await Test.createTestingModule({
-            providers: [PostsService, { provide: PrismaService, useValue: prismaMock }],
+            providers: [
+                PostsService,
+                { provide: PrismaService, useValue: prismaMock },
+                { provide: CacheService, useValue: { invalidate: vi.fn().mockResolvedValue(true) } }
+            ],
         }).compile();
 
         service = moduleRef.get(PostsService);

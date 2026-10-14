@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { SLUG_MAX, SLUG_PATTERN } from './posts.constants.js';
 
 // Leaves room for a "-<suffix>" inside the 200-character column
 export const MAX_BASE_SLUG_LENGTH = 100;
@@ -38,4 +39,11 @@ export function pickSlug(
     }
 
     return `${base}-${suffix()}`;
+}
+
+/** A slug taken from a URL, lowercased (slugs are stored lowercase), or null if it could not exist. */
+export function normalizeSlug(raw: string): string | null {
+    const slug = raw.toLowerCase();
+
+    return slug.length > SLUG_MAX || !SLUG_PATTERN.test(slug) ? null : slug;
 }

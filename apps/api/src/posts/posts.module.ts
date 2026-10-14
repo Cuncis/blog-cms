@@ -5,6 +5,7 @@ import { PostsListService } from './posts-list.service.js';
 import { PostsService } from './posts.service.js';
 import { PublicPostsController } from './public-posts.controller.js';
 import { PublicPostsListController } from './public-posts-list.controller.js';
+import { PublicPostsReader } from './public-posts.reader.js';
 
 @Module({
     controllers: [
@@ -13,6 +14,6 @@ import { PublicPostsListController } from './public-posts-list.controller.js';
         ManagePostsController,
         ManagePostsListController,
     ],
-    providers: [PostsService, PostsListService],
+    providers: [PostsService, PostsListService, PublicPostsReader],
 })
 export class PostsModule { }

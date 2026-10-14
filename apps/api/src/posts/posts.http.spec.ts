@@ -9,6 +9,7 @@ import { RolesGuard } from '../auth/roles.guard.js';
 import { TokenService } from '../auth/token.service.js';
 import { ManagePostsController } from './manage-posts.controller.js';
 import { PostsService } from './posts.service.js';
+import { PublicPostsReader } from './public-posts.reader.js';
 import { PublicPostsController } from './public-posts.controller.js';
 
 const ADMIN_ID = 'aaaaaaaa-0000-4000-8000-000000000001';
@@ -64,7 +65,8 @@ describe('posts HTTP wiring', () => {
         const moduleRef = await Test.createTestingModule({
             controllers: [PublicPostsController, ManagePostsController],
             providers: [
-                { provide: PostsService, useValue: service },
+{ provide: PostsService, useValue: service },
+                { provide: PublicPostsReader, useValue: service },
                 { provide: TokenService, useValue: { verifyAccessToken } },
                 { provide: APP_GUARD, useClass: JwtAuthGuard },
                 { provide: APP_GUARD, useClass: RolesGuard },

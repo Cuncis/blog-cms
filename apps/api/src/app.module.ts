@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/jwt-auth.guard.js';
 import { RolesGuard } from './auth/roles.guard.js';
+import { CacheModule } from './cache/cache.module.js';
 import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
 import { configuration } from './config/configuration.js';
 import { validateEnv } from './config/env.validation.js';
@@ -24,6 +25,7 @@ import { UsersModule } from './users/users.module.js';
     }),
     ThrottlerModule.forRoot(throttlerOptions),
     PrismaModule,
+    CacheModule,
     HealthModule,
     AuthModule,
     UsersModule,

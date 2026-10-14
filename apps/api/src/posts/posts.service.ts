@@ -8,6 +8,7 @@ import {
 import { PostStatus } from '@prisma/client';
 import { AUTH_REQUIRED_MESSAGE } from '../auth/auth.constants.js';
 import type { AuthenticatedUser } from '../auth/auth.types.js';
+import { CacheService } from '../cache/cache.service.js';
 import {
     isForeignKeyViolation,
     isRecordNotFound,
@@ -17,14 +18,14 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreatePostDto } from './dto/create-post.dto.js';
 import type { UpdatePostDto } from './dto/update-post.dto.js';
 import { canManagePost, publicationFields } from './post-policy.js';
-import { SLUG_MAX, SLUG_PATTERN } from './posts.constants.js';
+import { PUBLIC_POSTS_SCOPE } from './posts-cache.js';
 import {
     managePostSelect,
     publicPostSelect,
     type ManagePost,
     type PublicPost,
 } from './posts.types.js';
-import { pickSlug, slugCandidates, slugify } from './slug.util.js';
+import { normalizeSlug, pickSlug, slugCandidates, slugify } from './slug.util.js';
 
 const POST_NOT_FOUND = 'Post not found.';
 
@@ -34,11 +35,15 @@ const MAX_CREATE_ATTEMPTS = 8;
 
 @Injectable()
 export class PostsService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly cache: CacheService,
+    ) { }
 
     async create(actor: AuthenticatedUser, dto: CreatePostDto): Promise<ManagePost> {
         const base = slugify(dto.title);
 
+        // No cache invalidation here: a new post is a draft, and the public can't see drafts
         for (let attempt = 0; attempt < MAX_CREATE_ATTEMPTS; attempt++) {
             const slug = await this.chooseSlug(base);
 
@@ -89,12 +94,16 @@ export class PostsService {
         // The author never changes, so checking ownership first and updating second is safe
         await this.getManaged(actor, id);
 
+        let updated: ManagePost;
         try {
-            return await this.prisma.post.update({ where: { id }, data, select: managePostSelect });
+            updated = await this.prisma.post.update({ where: { id }, data, select: managePostSelect });
         } catch (error) {
             if (isRecordNotFound(error)) throw new NotFoundException(POST_NOT_FOUND); // deleted meanwhile
             throw error;
         }
+
+        await this.invalidatePublicCache();
+        return updated;
     }
 
     publish(actor: AuthenticatedUser, id: string): Promise<ManagePost> {
@@ -114,14 +123,16 @@ export class PostsService {
             if (isRecordNotFound(error)) throw new NotFoundException(POST_NOT_FOUND);
             throw error;
         }
+
+        await this.invalidatePublicCache();
     }
 
     /** Public read. The status filter is what keeps drafts from ever leaking. */
     async getPublished(rawSlug: string): Promise<PublicPost> {
-        const slug = rawSlug.toLowerCase(); // slugs are stored lowercase
+        const slug = normalizeSlug(rawSlug);
 
         // Can't possibly exist: skip the database
-        if (slug.length > SLUG_MAX || !SLUG_PATTERN.test(slug)) throw new NotFoundException(POST_NOT_FOUND);
+        if (slug === null) throw new NotFoundException(POST_NOT_FOUND);
 
         const post = await this.prisma.post.findFirst({
             where: { slug, status: PostStatus.PUBLISHED },
@@ -141,7 +152,7 @@ export class PostsService {
     ): Promise<ManagePost> {
         const current = await this.getManaged(actor, id);
 
-        // Already there: nothing to write, so publishedAt keeps its original value
+        // Already there: nothing to write and nothing for the public to see change
         if (current.status === target) return current;
 
         // Conditional update: of two concurrent requests, only one changes the row
@@ -149,11 +160,20 @@ export class PostsService {
             where: { id, status: current.status },
             data: publicationFields(target, new Date()),
         });
+        await this.invalidatePublicCache();
 
         const fresh = await this.prisma.post.findUnique({ where: { id }, select: managePostSelect });
         if (!fresh) throw new NotFoundException(POST_NOT_FOUND); // deleted meanwhile
 
         return fresh;
+    }
+
+    /**
+     * Anything that can change what the public sees must call this AFTER its database write.
+     * It never throws, so a Redis outage can't fail a write that already succeeded.
+     */
+    private async invalidatePublicCache(): Promise<void> {
+        await this.cache.invalidate(PUBLIC_POSTS_SCOPE);
     }
 
     /** One IN query on the unique index finds which candidate slugs are taken. */
