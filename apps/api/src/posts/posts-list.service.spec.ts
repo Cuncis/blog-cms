@@ -82,7 +82,8 @@ describe('PostsListService', () => {
 
             expect(Object.keys(items[0] ?? {}).sort()).toEqual([
                 'author',
-                'excerpt',
+        'coverImageId',
+        'excerpt',
                 'publishedAt',
                 'slug',
                 'title',

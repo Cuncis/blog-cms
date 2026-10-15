@@ -385,7 +385,8 @@ describe('PostsService', () => {
             expect(Object.keys(publicPostSelect).sort()).toEqual([
                 'author',
                 'content',
-                'excerpt',
+        'coverImageId',
+        'excerpt',
                 'publishedAt',
                 'slug',
                 'title',

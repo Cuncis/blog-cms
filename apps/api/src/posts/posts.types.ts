@@ -9,6 +9,7 @@ export const managePostSelect = {
     content: true,
     status: true,
     publishedAt: true,
+    coverImageId: true,
     createdAt: true,
     updatedAt: true,
     author: { select: { id: true, name: true } },
@@ -16,12 +17,14 @@ export const managePostSelect = {
 
 export type ManagePost = Prisma.PostGetPayload<{ select: typeof managePostSelect }>;
 
-// What the public sees: no ids, no status, no email, only the author's display name
+// What the public sees: no ids, no status, no email, only the author's display name.
+// coverImageId is the name of a publicly readable image, so it is fine to show.
 export const publicPostSelect = {
     slug: true,
     title: true,
     excerpt: true,
     content: true,
+    coverImageId: true,
     publishedAt: true,
     updatedAt: true,
     author: { select: { name: true } },

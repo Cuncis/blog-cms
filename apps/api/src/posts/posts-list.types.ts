@@ -7,6 +7,7 @@ export const listSelect = {
     slug: true,
     title: true,
     excerpt: true,
+    coverImageId: true,
     status: true,
     publishedAt: true,
     createdAt: true,
@@ -21,6 +22,7 @@ export type PublicPostListItem = {
     slug: string;
     title: string;
     excerpt: string | null;
+    coverImageId: string | null;
     publishedAt: Date | null;
     author: { name: string };
 };
@@ -30,6 +32,7 @@ export function toPublicItem(row: ListRow): PublicPostListItem {
         slug: row.slug,
         title: row.title,
         excerpt: row.excerpt,
+        coverImageId: row.coverImageId,
         publishedAt: row.publishedAt,
         author: { name: row.author.name },
     };

@@ -19,6 +19,11 @@ enum PostStatus {
   PUBLISHED
 }
 
+enum UploadStatus {
+  PENDING
+  CONFIRMED
+}
+
 model User {
   id            String         @id @default(uuid()) @db.Char(36)
   email         String         @unique @db.VarChar(254)
@@ -29,6 +34,7 @@ model User {
   updatedAt     DateTime       @updatedAt
   posts         Post[]
   refreshTokens RefreshToken[]
+  uploads       Upload[]
 
   @@map("users")
 }
@@ -50,24 +56,45 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+// One row per image upload. The file itself lives in object storage:
+// tmp/<id> while PENDING (quarantine), covers/<id> once CONFIRMED.
+model Upload {
+  id          String       @id @default(uuid()) @db.Char(36)
+  userId      String       @db.Char(36)
+  contentType String       @db.VarChar(50)
+  size        Int // announced size in bytes; the signed policy enforces exactly this
+  status      UploadStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  confirmedAt DateTime?
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coverOf     Post? // the post this upload is the cover of, if any
+
+  @@index([status, createdAt])
+  @@index([userId, status, createdAt])
+  @@map("uploads")
+}
+
 model Post {
-  id          String     @id @default(uuid()) @db.Char(36)
-  slug        String     @unique @db.VarChar(200)
-  title       String     @db.VarChar(200)
-  excerpt     String?    @db.VarChar(300)
-  content     String     @db.MediumText
-  status      PostStatus @default(DRAFT)
-  publishedAt DateTime? // set when a post is published (the service enforces this in Step 5)
-  authorId    String     @db.Char(36)
-  author      User       @relation(fields: [authorId], references: [id], onDelete: Restrict)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id           String     @id @default(uuid()) @db.Char(36)
+  slug         String     @unique @db.VarChar(200)
+  title        String     @db.VarChar(200)
+  excerpt      String?    @db.VarChar(300)
+  content      String     @db.MediumText
+  status       PostStatus @default(DRAFT)
+  publishedAt  DateTime? // set when a post is published (the service enforces this)
+  authorId     String     @db.Char(36)
+  author       User       @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  // RESTRICT: an upload that is some post's cover can never be deleted out from under it
+  coverImageId String?    @unique @db.Char(36)
+  coverImage   Upload?    @relation(fields: [coverImageId], references: [id], onDelete: Restrict)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   // The public list: published posts, newest first
   @@index([status, publishedAt])
   // "My posts" for an author
   @@index([authorId, createdAt])
-  // MATCH ... AGAINST search (used in Step 6)
+  // MATCH ... AGAINST search
   @@fulltext([title, content])
   @@map("posts")
 }
